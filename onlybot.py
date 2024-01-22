@@ -2,7 +2,14 @@ import streamlit as st
 import random
 import time
 
-st.title("Job searching chatbot")
+st.set_page_config(
+    page_title="Job Searching Chatbot",
+    page_icon=":briefcase:",
+    layout="wide",
+)
+
+st.title("Job Searching Chatbot")
+st.sidebar.title("Job Searching Chatbot")
 
 # Initialize chat history
 if "messages" not in st.session_state:
@@ -13,68 +20,104 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# Accept user input
-if prompt := st.chat_input("What is up?"):
-    # Add user message to chat history
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    # Display user message in chat message container
+# Your other code...
+
+job_questions = [
+    "SALAM",
+    "SALAMALAIKUM",
+    "ASSALAMUALAIKUM",
+    "ASSALAMOALAIKUM",
+    "ASSALAM U ALAIKUM",
+    "ASSALAM O ALAIKOM",
+    "ASSALAMOALAIKUM",
+    "HELLO",
+    "EMPLOYMENT",
+    "HOW ARE YOU",
+    "I WANT JOB",
+    "YES",
+    "BY",
+]
+
+responses = {
+    "SALAM": "WALAIKOM ASSALAM! How can I assist you with your job search?",
+    "SALAMALAIKUM": "WALAIKOM ASSALAM! How can I assist you with your job search?",
+    "ASSALAMUALAIKUM": "WALAIKOM ASSALAM! How can I assist you with your job search?",
+    "ASSALAMOALAIKUM": "WALAIKOM ASSALAM! How can I assist you with your job search?",
+    "ASSALAM U ALAIKUM": "WALAIKOM ASSALAM! How can I assist you with your job search?",
+    "ASSALAM O ALAIKOM": "WALAIKOM ASSALAM! How can I assist you with your job search?",
+    "ASSALAMOALAIKUM": "WALAIKOM ASSALAM! How can I assist you with your job search?",
+    "HELLO": "Hello! How can I assist you with your job search?",
+    "EMPLOYMENT": "Sure, tell me more about the type of employment you are looking for.",
+    "HOW ARE YOU": "I'm just a chatbot, but thanks for asking! How can I help you today?",
+    "I WANT JOB": "Enter your job description",
+    "YES": "Great! What specific job are you interested in?",
+    "BY": "Goodbye! If you have more questions, feel free to ask.",
+}
+
+def clear_chat_history():
+    st.session_state.messages = []
+    st.session_state.job_results = []
+    with open("chathistory.txt", "w") as file:
+        for item in st.session_state.messages + st.session_state.job_results:
+            file.write(f"{item['role']}: {item['content']}\n")
+
+st.sidebar.button('Clear Chat History', on_click=clear_chat_history)
+st.sidebar.markdown("<div class='custom button'></div>", unsafe_allow_html=True)
+
+st.sidebar.markdown("## Customer Feedback:")
+feedback = st.sidebar.text_area("Provide feedback of chatbot:")
+if st.sidebar.button("Submit Feedback"):
+    with open("feedback.txt", "a") as feedback_file:
+        feedback_file.write(f"{feedback}\n")
+    st.sidebar.success("Feedback submitted successfully!")
+
+def save_to_chat_history(role, content):
+    st.session_state.messages.append({"role": role, "content": content})
+    with open("chathistory.txt", "a") as file:
+        file.write(f"{role}: {content}\n")
+
+def display_jobs(results):
+    for index, result in enumerate(results, start=1):
+        title = result.get('title', '')
+        company = result.get('snippet', '')
+        link = result.get('link', '')
+
+        with st.expander(f"Job {index} - {title}"):
+            st.write(f"Company: {company}")
+            st.write(f"Link: {link}")
+
+if prompt := st.chat_input("Enter your desired job (example: Software Engineer)"):
+    save_to_chat_history("user", prompt)
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # Display assistant response in chat message container
-    with st.chat_message("assistant"):
-        message_placeholder = st.empty()
-        full_response = ""
-        
-        # Job-related questions and answers
-        job_questions = [
-            "i want job",
-            "Tell me about your skills and experience.",
-            "What kind of job are you looking for?",
-            "Have you prepared a resume?",
-            "Are you open to relocation?",
-            "How do you handle job interviews?",
-            "Do you have any specific industries in mind?",
-        ]
-        
-        job_responses = [
-            "Enter your job description"
-            "It's important to highlight your skills and experience on your resume.",
-            "Consider specifying the type of job you are interested in to narrow down your search.",
-            "Having a well-prepared resume is crucial for job applications.",
-            "Being open to relocation can broaden your job opportunities.",
-            "Prepare for job interviews by practicing common questions and researching the company.",
-            "Certain industries may have specific requirements; make sure to tailor your applications accordingly.",
-        ]
+    job_description = prompt.upper()
 
-        # Check if the user's input matches a job-related question
-        matched_question = None
-        for question in job_questions:
-            if question.lower() in prompt.lower():
-                matched_question = question
-                break
+    # Check if the user's input contains any of the job-related questions
+    contains_job_question = any(question in job_description for question in job_questions)
 
-        # If a match is found, respond with the corresponding answer
-        if matched_question:
-            index = job_questions.index(matched_question)
-            assistant_response = job_responses[index]
-        else:
-            # If no match, provide a generic response
-            assistant_response = random.choice(
-                [
-                    "Hello there! How can I assist you today?",
-                    "Hi, human! Is there anything I can help you with?",
-                    "Do you need help?",
-                ]
-            )
+    # Initialize response with a default message
+    response = "I'm sorry, I didn't understand that. How can I assist you with your job search? Enter your description."
 
-        # Simulate stream of response with milliseconds delay
-        for chunk in assistant_response.split():
-            full_response += chunk + " "
-            time.sleep(0.05)
-            # Add a blinking cursor to simulate typing
-            message_placeholder.markdown(full_response + "▌")
-        message_placeholder.markdown(full_response)
+    if contains_job_question:
+        # User input contains a job-related question, process accordingly
+        role_response = "assistant"
 
-    # Add assistant response to chat history
-    st.session_state.messages.append({"role": "assistant", "content": full_response})
+        # Check if the job_description is in the responses dictionary
+        if job_description in responses:
+            response = responses[job_description]
+        elif "JOB" in job_description:
+            # Extract the job title from the user's input
+            job_title = job_description.replace("JOB", "").strip()
+            # Add your custom job search logic here if needed
+
+        # Save the response to chat history
+        save_to_chat_history(role_response, response)
+
+        # Display the response
+        with st.chat_message(role_response):
+            st.markdown(response)
+    else:
+        # User input does not contain a job-related question, display a generic response
+        with st.chat_message("assistant"):
+            st.markdown("Hello! How can I assist you with your job search?")
